@@ -1,0 +1,68 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 195 7% 10%;
+    --foreground: 0 0% 100%;
+    --card: 195 7% 12%;
+    --card-foreground: 0 0% 100%;
+    --popover: 195 7% 10%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 199 74% 70%;
+    --primary-foreground: 195 7% 10%;
+    --secondary: 195 7% 18%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 195 7% 22%;
+    --muted-foreground: 195 7% 70%;
+    --accent: 238 100% 77%;
+    --accent-foreground: 195 7% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 195 7% 20%;
+    --input: 195 7% 20%;
+    --ring: 199 74% 70%;
+    --radius: 0.75rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground selection:bg-primary/30;
+  }
+}
+
+.chat-scroll-area > div > div {
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-muted/50 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-muted;
+}
+
+@keyframes thought-pulse {
+  0% { opacity: 0.5; }
+  50% { opacity: 1; }
+  100% { opacity: 0.5; }
+}
+
+.thought-animation {
+  animation: thought-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
