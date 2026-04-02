@@ -14,38 +14,84 @@ import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { cn } from '@/lib/utils';
 
 interface Message {
+  id: string;
   role: 'user' | 'assistant';
   content: string;
   reasoning_details?: any;
   suggestions?: string[];
+  animateTypewriter?: boolean;
 }
 
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([
     {
+      id: 'assistant-welcome',
       role: 'assistant',
-      content: "Hey there! I'm Tasha, your VyperX growth partner. 👋\n\nI help brands scale with consistent high-quality social media content and websites built for conversions. How can I help you grow today?"
+      content: "Hey there! I'm Tasha, your VyperX growth partner. 👋\n\nI help brands scale with consistent high-quality social media content and websites built for conversions. How can I help you grow today?",
+      animateTypewriter: false,
     }
   ]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [showLeadForm, setShowLeadForm] = useState(false);
+  const [keyboardOffset, setKeyboardOffset] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const hasInitializedScroll = useRef(false);
 
   const logo = PlaceHolderImages.find(img => img.id === 'vyperx-logo');
 
-  const scrollToBottom = () => {
+  const createMessageId = () => {
+    return `msg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  };
+
+  const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
     if (scrollRef.current) {
       const scrollContainer = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]');
       if (scrollContainer) {
-        scrollContainer.scrollTop = scrollContainer.scrollHeight;
+        scrollContainer.scrollTo({
+          top: scrollContainer.scrollHeight,
+          behavior,
+        });
       }
     }
   };
 
   useEffect(() => {
-    scrollToBottom();
+    if (!hasInitializedScroll.current) {
+      scrollToBottom('auto');
+      hasInitializedScroll.current = true;
+      return;
+    }
+
+    scrollToBottom('smooth');
   }, [messages, isTyping, showLeadForm]);
+
+  useEffect(() => {
+    const viewport = window.visualViewport;
+
+    if (!viewport) {
+      return;
+    }
+
+    const updateKeyboardOffset = () => {
+      const nextOffset = Math.max(
+        0,
+        window.innerHeight - viewport.height - viewport.offsetTop
+      );
+      setKeyboardOffset(nextOffset);
+    };
+
+    updateKeyboardOffset();
+    viewport.addEventListener('resize', updateKeyboardOffset);
+    viewport.addEventListener('scroll', updateKeyboardOffset);
+    window.addEventListener('orientationchange', updateKeyboardOffset);
+
+    return () => {
+      viewport.removeEventListener('resize', updateKeyboardOffset);
+      viewport.removeEventListener('scroll', updateKeyboardOffset);
+      window.removeEventListener('orientationchange', updateKeyboardOffset);
+    };
+  }, []);
 
   const handleSend = async (customText?: string) => {
     const userMessage = customText || input.trim();
@@ -58,7 +104,15 @@ export default function ChatPage() {
       setShowLeadForm(false);
     }
 
-    const newMessages = [...messages, { role: 'user', content: userMessage }] as Message[];
+    const newMessages = [
+      ...messages,
+      {
+        id: createMessageId(),
+        role: 'user',
+        content: userMessage,
+        animateTypewriter: false,
+      }
+    ] as Message[];
     setMessages(newMessages);
     setIsTyping(true);
 
@@ -71,16 +125,20 @@ export default function ChatPage() {
       });
 
       setMessages(prev => [...prev, { 
+        id: createMessageId(),
         role: 'assistant', 
         content: response.response,
-        reasoning_details: response.reasoning_details
+        reasoning_details: response.reasoning_details,
+        animateTypewriter: true,
       }]);
       
     } catch (error) {
       console.error("Failed to get response from Tasha:", error);
       setMessages(prev => [...prev, { 
+        id: createMessageId(),
         role: 'assistant', 
-        content: "I'm having a brief technical hiccup connecting to my growth brain. Please reach out to us at https://vyperx.in/pages/contact!" 
+        content: "I'm having a brief technical hiccup connecting to my growth brain. Please reach out to us at https://vyperx.in/pages/contact!",
+        animateTypewriter: true,
       }]);
     } finally {
       setIsTyping(false);
@@ -89,6 +147,7 @@ export default function ChatPage() {
 
   const handleHelp = () => {
     setMessages(prev => [...prev, { 
+      id: createMessageId(),
       role: 'assistant', 
       content: "I'm Tasha, and I'm here to help you scale your brand! 🚀\n\nYou can ask me about our specific growth systems or services. Click one of the plans below to learn more immediately!",
       suggestions: [
@@ -96,7 +155,8 @@ export default function ChatPage() {
         "Growth Plan Pricing",
         "Elite Scaling System",
         "UGC Video Packs"
-      ]
+      ],
+      animateTypewriter: true,
     }]);
   };
 
@@ -105,7 +165,7 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="flex flex-col h-screen max-w-full md:max-w-5xl mx-auto md:border-x border-border/30 shadow-2xl overflow-hidden bg-background relative selection:bg-primary/20">
+    <div className="flex flex-col h-[100dvh] max-w-full md:max-w-5xl mx-auto md:border-x border-border/30 shadow-2xl overflow-hidden bg-background relative selection:bg-primary/20">
       {/* Header */}
       <header className="px-6 py-5 border-b border-border/30 bg-background/90 backdrop-blur-xl flex items-center justify-between sticky top-0 z-20">
         <div className="flex items-center gap-4">
@@ -162,9 +222,14 @@ export default function ChatPage() {
       {/* Chat Area */}
       <ScrollArea ref={scrollRef} className="flex-1 px-4 md:px-8 py-6 chat-scroll-area">
         <div className="flex flex-col min-h-full">
-          {messages.map((msg, idx) => (
-            <div key={idx} className="flex flex-col">
-              <MessageBubble message={msg} />
+          {messages.map((msg) => (
+            <div key={msg.id} className="flex flex-col">
+              <MessageBubble
+                message={msg}
+                onTypingProgress={() => {
+                  scrollToBottom('smooth');
+                }}
+              />
               {msg.suggestions && (
                 <div className="flex flex-wrap gap-2 mb-6 ml-12">
                   {msg.suggestions.map((suggestion, sIdx) => (
@@ -199,7 +264,13 @@ export default function ChatPage() {
       </ScrollArea>
 
       {/* Input Area */}
-      <div className="p-6 border-t border-border/30 bg-background/95 backdrop-blur-xl">
+      <div
+        className="sticky bottom-0 z-20 px-4 md:px-6 pt-4 border-t border-border/30 bg-background/95 backdrop-blur-xl"
+        style={{
+          transform: keyboardOffset > 0 ? `translateY(-${keyboardOffset}px)` : undefined,
+          paddingBottom: 'calc(env(safe-area-inset-bottom) + 1rem)',
+        }}
+      >
         <form 
           onSubmit={(e) => {
             e.preventDefault();

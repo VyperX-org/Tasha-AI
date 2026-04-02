@@ -1,22 +1,64 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ChevronDown, ChevronUp, Brain } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 interface Message {
+  id: string;
   role: 'user' | 'assistant';
   content: string;
   reasoning_details?: any;
+  animateTypewriter?: boolean;
 }
 
 interface MessageBubbleProps {
   message: Message;
+  onTypingProgress?: () => void;
 }
 
-export function MessageBubble({ message }: MessageBubbleProps) {
+export function MessageBubble({ message, onTypingProgress }: MessageBubbleProps) {
   const isAssistant = message.role === 'assistant';
   const [isOpen, setIsOpen] = useState(false);
+  const [displayedContent, setDisplayedContent] = useState(
+    isAssistant && message.animateTypewriter ? '' : message.content
+  );
+  const hasTypedRef = useRef(false);
+
+  useEffect(() => {
+    hasTypedRef.current = false;
+  }, [message.id]);
+
+  useEffect(() => {
+    if (!isAssistant || !message.animateTypewriter) {
+      setDisplayedContent(message.content);
+      return;
+    }
+
+    if (hasTypedRef.current) {
+      return;
+    }
+
+    setDisplayedContent('');
+    let charIndex = 0;
+    const fullContent = message.content;
+    const step = Math.max(1, Math.ceil(fullContent.length / 140));
+
+    const intervalId = window.setInterval(() => {
+      charIndex = Math.min(fullContent.length, charIndex + step);
+      setDisplayedContent(fullContent.slice(0, charIndex));
+      onTypingProgress?.();
+
+      if (charIndex >= fullContent.length) {
+        window.clearInterval(intervalId);
+        hasTypedRef.current = true;
+      }
+    }, 20);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [isAssistant, message.content, message.animateTypewriter, onTypingProgress]);
 
   const renderFormattedContent = (text: string) => {
     // Regex matches:
@@ -93,6 +135,11 @@ export function MessageBubble({ message }: MessageBubbleProps) {
     });
   };
 
+  const isTypewriting =
+    isAssistant &&
+    message.animateTypewriter &&
+    displayedContent.length < message.content.length;
+
   return (
     <div
       className={cn(
@@ -118,7 +165,8 @@ export function MessageBubble({ message }: MessageBubbleProps) {
           )}
         >
           <div className="whitespace-pre-wrap leading-relaxed font-body">
-            {renderFormattedContent(message.content)}
+            {renderFormattedContent(displayedContent)}
+            {isTypewriting && <span className="inline-block ml-0.5 h-[1em] w-[2px] bg-primary/80 align-[-2px] animate-pulse" />}
           </div>
         </div>
 
