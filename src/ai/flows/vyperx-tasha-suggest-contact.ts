@@ -23,47 +23,139 @@ export type VyperXTashaSuggestContactOutput = z.infer<
   typeof VyperXTashaSuggestContactOutputSchema
 >;
 
+/* ------------------ NORMALIZER ------------------ */
+
+function normalize(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^\w\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 /* ------------------ INTENT DETECTION ------------------ */
 
-function detectIntent(messages: { role: string; content: string }[]) {
+function detectIntents(messages: { role: string; content: string }[]) {
   const lastUserMessage =
-    [...messages].reverse().find((m) => m.role === 'user')?.content || "";
+    [...messages].reverse().find((m) => m.role === "user")?.content || "";
 
-  const q = lastUserMessage.toLowerCase();
+  const q = normalize(lastUserMessage);
 
-  if (q.includes("price") || q.includes("cost")) return "pricing";
-  if (q.includes("website") || q.includes("store")) return "website";
-  if (q.includes("ugc") || q.includes("video")) return "ugc";
-  if (q.includes("social") || q.includes("instagram")) return "social";
-  if (q.includes("ads") || q.includes("marketing")) return "ads";
+  const intents = new Set<string>();
 
-  return "general";
+  // ✅ greetings
+  if (q.includes("hi") || q.includes("hello") || q.includes("hey")) {
+    intents.add("greeting");
+  }
+
+  // ✅ pricing
+  if (
+    q.includes("price") ||
+    q.includes("cost") ||
+    q.includes("pricing") ||
+    q.includes("plan")
+  ) {
+    intents.add("pricing");
+  }
+
+  // ✅ website
+  if (
+    q.includes("website") ||
+    q.includes("store") ||
+    q.includes("shopify") ||
+    q.includes("ecommerce")
+  ) {
+    intents.add("website");
+  }
+
+  // ✅ ugc
+  if (
+    q.includes("ugc") ||
+    q.includes("video") ||
+    q.includes("content")
+  ) {
+    intents.add("ugc");
+  }
+
+  // ✅ social media
+  if (
+    q.includes("social") ||
+    q.includes("instagram") ||
+    q.includes("posting")
+  ) {
+    intents.add("social");
+  }
+
+  // ✅ ads
+  if (
+    q.includes("ads") ||
+    q.includes("marketing")
+  ) {
+    intents.add("ads");
+  }
+
+  // ✅ fallback
+  if (intents.size === 0) {
+    intents.add("general");
+  }
+
+  return Array.from(intents);
 }
 
 /* ------------------ RESPONSE GENERATOR ------------------ */
 
-function generateResponse(intent: string): string {
-  switch (intent) {
-    case "pricing":
-      return `Our plans start from Rs. 15,000/month and scale depending on your growth stage.
+function generateResponse(intents: string[]): string {
+  const responses: string[] = [];
 
-This is designed to help you get consistent growth and better results.`;
+  for (const intent of intents) {
+    switch (intent) {
+      case "greeting":
+        responses.push(
+          `Hey, I’m Tasha — your VyperX growth partner.
 
-    case "website":
-      return `We build high-converting e-commerce websites starting at Rs. 45,000 designed to turn visitors into customers.`;
+I help brands generate leads and scale revenue using content, ads, and conversion-focused websites.`
+        );
+        break;
 
-    case "ugc":
-      return `Our UGC video packs start at Rs. 5,999 and are built to create high-performing ad content.`;
+      case "pricing":
+        responses.push(
+          `Our plans start from Rs. 15,000/month and scale depending on your growth stage.`
+        );
+        break;
 
-    case "social":
-      return `We offer social media plans from Rs. 15,000 to Rs. 35,000/month focused on consistency, engagement, and growth.`;
+      case "website":
+        responses.push(
+          `We build high-converting e-commerce websites starting at Rs. 45,000 designed to turn visitors into customers.`
+        );
+        break;
 
-    case "ads":
-      return `Our performance marketing systems help you generate leads and scale revenue through structured ad campaigns.`;
+      case "ugc":
+        responses.push(
+          `Our UGC video packs start at Rs. 5,999 and are built to create high-performing ad content.`
+        );
+        break;
 
-    default:
-      return `We help brands grow through social media, ads, websites, and content systems tailored for results.`;
+      case "social":
+        responses.push(
+          `We offer social media plans from Rs. 15,000 to Rs. 35,000/month focused on consistency, engagement, and growth.`
+        );
+        break;
+
+      case "ads":
+        responses.push(
+          `Our performance marketing systems help you generate leads and scale revenue through structured ad campaigns.`
+        );
+        break;
+
+      case "general":
+        responses.push(
+          `We help brands grow through social media, ads, websites, and content systems tailored for results.`
+        );
+        break;
+    }
   }
+
+  return responses.join("\n\n");
 }
 
 /* ------------------ CTA BUILDER ------------------ */
@@ -82,9 +174,13 @@ https://vyperx.in/pages/contact`;
 export async function vyperXTashaSuggestContact(
   input: VyperXTashaSuggestContactInput
 ): Promise<VyperXTashaSuggestContactOutput> {
-  const intent = detectIntent(input.messages);
 
-  const baseResponse = generateResponse(intent);
+  // 🔥 safety: ensure valid input
+  const parsed = VyperXTashaSuggestContactInputSchema.parse(input);
+
+  const intents = detectIntents(parsed.messages);
+
+  const baseResponse = generateResponse(intents);
 
   return {
     response: addCTA(baseResponse),

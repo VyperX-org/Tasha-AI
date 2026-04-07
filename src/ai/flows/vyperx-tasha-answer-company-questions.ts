@@ -57,29 +57,33 @@ const knowledgeBase: KBItem[] = [
   },
 ];
 
+function findBestMatch(query: string): KBItem[] {
+  const normalized = query
+    .toLowerCase()
+    .replace(/[^\w\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 
-function findBestMatch(query: string): KBItem | null {
-  const q = query.toLowerCase();
-
-  let bestMatch: KBItem | null = null;
-  let bestScore = 0;
+  const matches: KBItem[] = [];
 
   for (const item of knowledgeBase) {
-    let score = 0;
+    let matched = false;
 
     for (const keyword of item.keywords) {
-      if (q.includes(keyword)) {
-        score += 2;
+      const k = keyword.toLowerCase();
+
+      if (normalized.includes(k)) {
+        matched = true;
+        break;
       }
     }
 
-    if (score > bestScore) {
-      bestScore = score;
-      bestMatch = item;
+    if (matched) {
+      matches.push(item);
     }
   }
 
-  return bestMatch;
+  return matches;
 }
 
 function buildResponse(base: string): string {
@@ -91,24 +95,26 @@ Best next step is to fill the form using the phone icon or book a call here:
 https://vyperx.in/pages/contact`;
 }
 
-
 export async function vyperXTashaAnswerCompanyQuestions(
   input: VyperXTashaAnswerCompanyQuestionsInput
 ): Promise<VyperXTashaAnswerCompanyQuestionsOutput> {
   const { question } = input;
 
-  const match = findBestMatch(question);
+  const matches = findBestMatch(question);
 
-  if (!match) {
+  if (matches.length === 0) {
     return {
       answer: `We help brands grow through social media, performance marketing, websites, and UGC content systems.
 
-      Best next step is to fill the form using the phone icon or book a call here:
-      https://vyperx.in/pages/contact`,
+Best next step is to fill the form using the phone icon or book a call here:
+https://vyperx.in/pages/contact`,
     };
   }
 
+  // ✅ take top 2 matches
+  const responses = matches.slice(0, 2).map(m => m.response);
+
   return {
-    answer: buildResponse(match.response),
+    answer: buildResponse([...new Set(responses)].join("\n\n")),
   };
 }
