@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -17,7 +16,6 @@ interface Message {
   id: string;
   role: 'user' | 'assistant';
   content: string;
-  reasoning_details?: any;
   suggestions?: string[];
   animateTypewriter?: boolean;
 }
@@ -119,25 +117,27 @@ export default function ChatPage() {
     try {
       const response = await vyperXTashaSuggestContact({
         messages: newMessages.map(m => ({
-          role: m.role === 'user' ? 'user' : 'assistant',
+          role: m.role,
           content: m.content
         }))
       });
 
-      setMessages(prev => [...prev, { 
+      setMessages(prev => [
+      ...prev,
+      {
         id: createMessageId(),
-        role: 'assistant', 
+        role: 'assistant',
         content: response.response,
-        reasoning_details: response.reasoning_details,
         animateTypewriter: true,
-      }]);
+      },
+    ]);
       
     } catch (error) {
       console.error("Failed to get response from Tasha:", error);
       setMessages(prev => [...prev, { 
         id: createMessageId(),
         role: 'assistant', 
-        content: "I'm having a brief technical hiccup connecting to my growth brain. Please reach out to us at https://vyperx.in/pages/contact!",
+        content: "Looks like something went wrong on our end, but no worries — our team can help you directly.\n\nFill the form using the phone icon or book a call here:\nhttps://vyperx.in/pages/contact",
         animateTypewriter: true,
       }]);
     } finally {
@@ -151,10 +151,10 @@ export default function ChatPage() {
       role: 'assistant', 
       content: "I'm Tasha, and I'm here to help you scale your brand! 🚀\n\nYou can ask me about our specific growth systems or services. Click one of the plans below to learn more immediately!",
       suggestions: [
-        "Starter Plan Details",
-        "Growth Plan Pricing",
-        "Elite Scaling System",
-        "UGC Video Packs"
+        "What plan is best for my business?",
+        "Show me pricing",
+        "I need a website",
+        "I want more sales"
       ],
       animateTypewriter: true,
     }]);

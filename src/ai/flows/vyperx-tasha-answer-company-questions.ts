@@ -1,60 +1,114 @@
-
 'use server';
-/**
- * @fileOverview A Genkit flow for Tasha to answer company-related questions using Gemini 3 Flash Preview.
- */
 
-import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import { z } from 'zod';
+
 
 const VyperXTashaAnswerCompanyQuestionsInputSchema = z.object({
-  question: z.string().describe("The user's question about VyperX services, pricing, or operations."),
+  question: z.string(),
 });
-export type VyperXTashaAnswerCompanyQuestionsInput = z.infer<typeof VyperXTashaAnswerCompanyQuestionsInputSchema>;
+export type VyperXTashaAnswerCompanyQuestionsInput = z.infer<
+  typeof VyperXTashaAnswerCompanyQuestionsInputSchema
+>;
 
 const VyperXTashaAnswerCompanyQuestionsOutputSchema = z.object({
-  answer: z.string().describe("Tasha's accurate and concise answer to the user's question."),
+  answer: z.string(),
 });
-export type VyperXTashaAnswerCompanyQuestionsOutput = z.infer<typeof VyperXTashaAnswerCompanyQuestionsOutputSchema>;
+export type VyperXTashaAnswerCompanyQuestionsOutput = z.infer<
+  typeof VyperXTashaAnswerCompanyQuestionsOutputSchema
+>;
 
-const systemPrompt = `You are Tasha, the official AI assistant for VyperX — a modern growth partner.
 
-## Core Services & Pricing
-- Starter: Rs. 15,000/month
-- Growth: Rs. 25,000/month
-- Elite: Rs. 35,000/month
-- E-commerce Website: Rs. 45,000
-- UGC Video Pack: Rs. 5,999
+type KBItem = {
+  id: string;
+  keywords: string[];
+  response: string;
+};
 
-## Rules
-- Use Indian Rupees (Rs.).
-- Be warm and confident.
-- Encourage users to **fill the form using the phone icon at the bar** so our growth strategists can reach out.
-- Do NOT say "drop your name/number". Always mention the phone icon or the contact link.
-- Always link to: [Contact Page](https://vyperx.in/pages/contact) at the end.`;
+const knowledgeBase: KBItem[] = [
+  {
+    id: "social-media",
+    keywords: ["social media", "instagram", "posting", "content"],
+    response:
+      "We offer social media management plans starting at Rs. 15,000/month and going up to Rs. 35,000/month, designed to improve consistency, engagement, and overall brand growth.",
+  },
+  {
+    id: "greetings",
+    keywords: ["hi", "hello"],
+    response:
+      "Hey, I’m Tasha — your VyperX growth partner.\n\nI help brands generate leads and scale revenue using content, ads, and conversion-focused websites.\n\nWhat’s your main goal right now — more leads, better branding, or higher sales?",
+  },
+  {
+    id: "pricing",
+    keywords: ["price", "cost", "pricing", "plans"],
+    response:
+      "Our pricing starts at Rs. 15,000/month for social media, Rs. 45,000 for e-commerce websites, and Rs. 5,999 for UGC content packs.",
+  },
+  {
+    id: "website",
+    keywords: ["website", "store", "shopify", "ecommerce"],
+    response:
+      "We build conversion-focused e-commerce websites starting at Rs. 45,000, designed to turn visitors into paying customers.",
+  },
+  {
+    id: "ugc",
+    keywords: ["ugc", "video", "content creation", "ads content"],
+    response:
+      "Our UGC video packs start at Rs. 5,999 and are specifically designed to create high-converting content for ads and social media.",
+  },
+];
+
+
+function findBestMatch(query: string): KBItem | null {
+  const q = query.toLowerCase();
+
+  let bestMatch: KBItem | null = null;
+  let bestScore = 0;
+
+  for (const item of knowledgeBase) {
+    let score = 0;
+
+    for (const keyword of item.keywords) {
+      if (q.includes(keyword)) {
+        score += 2;
+      }
+    }
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestMatch = item;
+    }
+  }
+
+  return bestMatch;
+}
+
+function buildResponse(base: string): string {
+  return `${base}
+
+This is designed to help you grow faster and generate better results.
+
+Best next step is to fill the form using the phone icon or book a call here:
+https://vyperx.in/pages/contact`;
+}
+
 
 export async function vyperXTashaAnswerCompanyQuestions(
   input: VyperXTashaAnswerCompanyQuestionsInput
 ): Promise<VyperXTashaAnswerCompanyQuestionsOutput> {
-  return vyperXTashaAnswerCompanyQuestionsFlow(input);
-}
+  const { question } = input;
 
-const companyPrompt = ai.definePrompt({
-  name: 'vyperXTashaAnswerCompanyQuestionsPrompt',
-  input: { schema: VyperXTashaAnswerCompanyQuestionsInputSchema },
-  output: { schema: VyperXTashaAnswerCompanyQuestionsOutputSchema },
-  system: systemPrompt,
-  prompt: `USER QUESTION: {{{question}}}`
-});
+  const match = findBestMatch(question);
 
-const vyperXTashaAnswerCompanyQuestionsFlow = ai.defineFlow(
-  {
-    name: 'vyperXTashaAnswerCompanyQuestionsFlow',
-    inputSchema: VyperXTashaAnswerCompanyQuestionsInputSchema,
-    outputSchema: VyperXTashaAnswerCompanyQuestionsOutputSchema,
-  },
-  async (input) => {
-    const { output } = await companyPrompt(input);
-    return output!;
+  if (!match) {
+    return {
+      answer: `We help brands grow through social media, performance marketing, websites, and UGC content systems.
+
+      Best next step is to fill the form using the phone icon or book a call here:
+      https://vyperx.in/pages/contact`,
+    };
   }
-);
+
+  return {
+    answer: buildResponse(match.response),
+  };
+}
