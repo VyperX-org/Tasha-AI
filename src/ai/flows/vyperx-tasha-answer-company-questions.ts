@@ -2,7 +2,6 @@
 
 import { z } from 'zod';
 
-
 const VyperXTashaAnswerCompanyQuestionsInputSchema = z.object({
   question: z.string(),
 });
@@ -16,7 +15,6 @@ const VyperXTashaAnswerCompanyQuestionsOutputSchema = z.object({
 export type VyperXTashaAnswerCompanyQuestionsOutput = z.infer<
   typeof VyperXTashaAnswerCompanyQuestionsOutputSchema
 >;
-
 
 type KBItem = {
   id: string;
@@ -55,6 +53,60 @@ const knowledgeBase: KBItem[] = [
     response:
       "Our UGC video packs start at Rs. 5,999 and are specifically designed to create high-converting content for ads and social media.",
   },
+  {
+  id: "thanks",
+  keywords: ["thanks", "thank you", "thx"],
+  response:
+    "You're welcome! 😊 Let me know if you need help with anything else."
+},
+{
+  id: "bye",
+  keywords: ["bye", "goodbye", "see you"],
+  response:
+    "Got it! 👋 If you need help later, I’ll be right here."
+},
+{
+  id: "how-are-you",
+  keywords: ["how are you", "how's it going"],
+  response:
+    "Doing great! Ready to help you grow 🚀 What are you looking to improve right now?"
+},
+{
+  id: "who-are-you",
+  keywords: ["who are you", "what are you"],
+  response:
+    "I’m Tasha, your VyperX AI growth partner. I help businesses get more leads, better branding, and higher sales."
+},
+{
+  id: "confused",
+  keywords: ["i dont know", "not sure", "confused"],
+  response:
+    "No worries — tell me a bit about your business, and I’ll suggest the best way to grow 🚀"
+},
+{
+  id: "experience",
+  keywords: ["experience", "worked with", "clients"],
+  response:
+    "We’ve worked with multiple brands across industries, focusing on growth through content, ads, and conversion optimization."
+},
+{
+  id: "timeline",
+  keywords: ["how long", "delivery time", "timeline"],
+  response:
+    "Timelines depend on the service — websites typically take 2–3 weeks, while social media growth is ongoing monthly."
+},
+{
+  id: "results",
+  keywords: ["results", "roi", "growth", "outcomes"],
+  response:
+    "Our goal is measurable growth — better engagement, more leads, and increased conversions. Strategies are tailored to your business."
+},
+{
+  id: "custom",
+  keywords: ["custom", "tailored", "personalized"],
+  response:
+    "Yes — all our strategies are customized based on your business goals, target audience, and industry."
+}
 ];
 
 function findBestMatch(query: string): KBItem[] {
@@ -92,7 +144,7 @@ function buildResponse(base: string): string {
 This is designed to help you grow faster and generate better results.
 
 Best next step is to fill the form using the phone icon or book a call here:
-https://vyperx.in/pages/contact`;
+https://vyperx.in/#contact`;
 }
 
 export async function vyperXTashaAnswerCompanyQuestions(
@@ -106,12 +158,11 @@ export async function vyperXTashaAnswerCompanyQuestions(
     return {
       answer: `We help brands grow through social media, performance marketing, websites, and UGC content systems.
 
-Best next step is to fill the form using the phone icon or book a call here:
-https://vyperx.in/pages/contact`,
+      Best next step is to fill the form using the phone icon or book a call here:
+      https://vyperx.in/#contact`,
     };
   }
 
-  // ✅ take top 2 matches
   const responses = matches.slice(0, 2).map(m => m.response);
 
   return {

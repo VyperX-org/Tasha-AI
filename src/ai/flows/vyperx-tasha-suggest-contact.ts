@@ -1,8 +1,8 @@
 'use server';
+import { normalize, tokenize } from "./utils";
+
 
 import { z } from 'zod';
-
-/* ------------------ SCHEMAS ------------------ */
 
 const VyperXTashaSuggestContactInputSchema = z.object({
   messages: z.array(
@@ -23,74 +23,46 @@ export type VyperXTashaSuggestContactOutput = z.infer<
   typeof VyperXTashaSuggestContactOutputSchema
 >;
 
-/* ------------------ NORMALIZER ------------------ */
-
-function normalize(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/[^\w\s]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-/* ------------------ INTENT DETECTION ------------------ */
-
 function detectIntents(messages: { role: string; content: string }[]) {
   const lastUserMessage =
     [...messages].reverse().find((m) => m.role === "user")?.content || "";
 
   const q = normalize(lastUserMessage);
+  const words = tokenize(lastUserMessage);
 
   const intents = new Set<string>();
 
-  // ✅ greetings
-  if (q.includes("hi") || q.includes("hello") || q.includes("hey")) {
+  // ✅ greetings (FIXED)
+  if (["hi", "hello", "hey"].some(w => words.includes(w))) {
     intents.add("greeting");
   }
 
-  // ✅ pricing
-  if (
-    q.includes("price") ||
-    q.includes("cost") ||
-    q.includes("pricing") ||
-    q.includes("plan")
-  ) {
+  // ✅ pricing (expanded)
+  if (["price", "cost", "pricing", "plan", "budget", "fees"].some(k => q.includes(k))) {
     intents.add("pricing");
   }
 
   // ✅ website
-  if (
-    q.includes("website") ||
-    q.includes("store") ||
-    q.includes("shopify") ||
-    q.includes("ecommerce")
-  ) {
+  if (["website", "store", "shopify", "ecommerce"].some(k => q.includes(k))) {
     intents.add("website");
   }
 
-  // ✅ ugc
+  // ✅ ugc (FIXED)
   if (
     q.includes("ugc") ||
-    q.includes("video") ||
-    q.includes("content")
+    q.includes("video ad") ||
+    q.includes("ugc video")
   ) {
     intents.add("ugc");
   }
 
-  // ✅ social media
-  if (
-    q.includes("social") ||
-    q.includes("instagram") ||
-    q.includes("posting")
-  ) {
+  // ✅ social
+  if (["social", "instagram", "posting"].some(k => q.includes(k))) {
     intents.add("social");
   }
 
   // ✅ ads
-  if (
-    q.includes("ads") ||
-    q.includes("marketing")
-  ) {
+  if (["ads", "marketing", "facebook ads", "google ads"].some(k => q.includes(k))) {
     intents.add("ads");
   }
 
@@ -102,8 +74,6 @@ function detectIntents(messages: { role: string; content: string }[]) {
   return Array.from(intents);
 }
 
-/* ------------------ RESPONSE GENERATOR ------------------ */
-
 function generateResponse(intents: string[]): string {
   const responses: string[] = [];
 
@@ -112,7 +82,6 @@ function generateResponse(intents: string[]): string {
       case "greeting":
         responses.push(
           `Hey, I’m Tasha — your VyperX growth partner.
-
 I help brands generate leads and scale revenue using content, ads, and conversion-focused websites.`
         );
         break;
@@ -158,18 +127,14 @@ I help brands generate leads and scale revenue using content, ads, and conversio
   return responses.join("\n\n");
 }
 
-/* ------------------ CTA BUILDER ------------------ */
-
 function addCTA(base: string): string {
   return `${base}
 
 Best next step is to fill the form using the phone icon so our growth strategists can reach out.
 
 Or book a call here:
-https://vyperx.in/pages/contact`;
+https://vyperx.in/#contact`;
 }
-
-/* ------------------ MAIN FUNCTION ------------------ */
 
 export async function vyperXTashaSuggestContact(
   input: VyperXTashaSuggestContactInput
