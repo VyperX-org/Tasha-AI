@@ -17,6 +17,7 @@ interface Message {
   role: 'user' | 'assistant';
   content: string;
   suggestions?: string[];
+  reasoning_details?: any;
   animateTypewriter?: boolean;
 }
 
@@ -25,7 +26,13 @@ export default function ChatPage() {
     {
       id: 'assistant-welcome',
       role: 'assistant',
-      content: "Hey there! I'm Tasha, your VyperX growth partner. 👋\n\nI help brands scale with consistent high-quality social media content and websites built for conversions. How can I help you grow today?",
+      content: "Hey there! I'm Tasha, your VyperX growth partner. 👋\n\nI help brands scale with consistent high-quality social media content, high-converting websites, UGC video packs, and Meta ad systems.\n\nHow can I help you grow today?",
+      suggestions: [
+        "What services do you offer?",
+        "Show me your pricing",
+        "How does the growth process work?",
+        "Which platforms do you support?"
+      ],
       animateTypewriter: false,
     }
   ]);
@@ -123,14 +130,16 @@ export default function ChatPage() {
       });
 
       setMessages(prev => [
-      ...prev,
-      {
-        id: createMessageId(),
-        role: 'assistant',
-        content: response.response,
-        animateTypewriter: true,
-      },
-    ]);
+        ...prev,
+        {
+          id: createMessageId(),
+          role: 'assistant',
+          content: response.response,
+          suggestions: response.suggestions,
+          reasoning_details: response.reasoning_details,
+          animateTypewriter: true,
+        },
+      ]);
       
     } catch (error) {
       console.error("Failed to get response from Tasha:", error);
@@ -281,7 +290,7 @@ export default function ChatPage() {
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask about social media plans, websites..."
+            placeholder="Ask about pricing, websites, Meta ads, UGC, platforms..."
             disabled={isTyping}
             className="flex-1 bg-transparent border-none outline-none text-sm py-2.5 placeholder:text-muted-foreground/50 font-body"
           />
